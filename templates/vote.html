@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>きのこ vs たけのこ</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  .choices{display:flex;gap:12px}
+  .choices button{flex:1;font-size:1.2rem}
+  .bar{display:flex;height:36px;border-radius:8px;overflow:hidden;margin-top:16px;background:#ddd}
+  .bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;min-width:0;transition:width .3s}
+  #a{background:#d97706} #b{background:#2563eb}
+</style>
+</head>
+<body>
+<main>
+  <h1>きのこ vs たけのこ</h1>
+  <p>どっち派？ボタンを押して投票してください。</p>
+  <div class="choices">
+    <button type="button" data-choice="きのこ">🍄 きのこ</button>
+    <button type="button" data-choice="たけのこ">🎋 たけのこ</button>
+  </div>
+  <div class="bar"><div id="a"></div><div id="b"></div></div>
+  <p id="result"></p>
+  <p><a href="/">← MiniBoard に戻る</a></p>
+</main>
+<script>
+function show(c) {
+  const a = c['きのこ'], b = c['たけのこ'], total = a + b;
+  const pa = total ? Math.round(a / total * 100) : 50;
+  document.querySelector('#a').style.width = pa + '%';
+  document.querySelector('#b').style.width = (100 - pa) + '%';
+  document.querySelector('#a').textContent = total ? pa + '%' : '';
+  document.querySelector('#b').textContent = total ? (100 - pa) + '%' : '';
+  document.querySelector('#result').textContent = `きのこ ${a}票 / たけのこ ${b}票（合計 ${total}票）`;
+}
+
+async function load() {
+  const r = await fetch('/api/votes');
+  show(await r.json());
+}
+
+document.querySelectorAll('[data-choice]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const r = await fetch('/api/votes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({choice: btn.dataset.choice})
+    });
+    if (r.ok) show(await r.json());
+  });
+});
+
+load();
+setInterval(load, 3000);  // 3秒ごとに最新の票数を取る（他の人の投票も反映される）
+</script>
+</body>
+</html>
