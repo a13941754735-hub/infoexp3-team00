@@ -25,6 +25,12 @@ def init_db():
         cols = [r["name"] for r in con.execute("PRAGMA table_info(messages)")]
         if "likes" not in cols:
             con.execute("ALTER TABLE messages ADD COLUMN likes INTEGER NOT NULL DEFAULT 0")
+        # 投票用のテーブル（1票 = 1行）
+        con.execute("""CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            choice TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )""")
 
 @app.get("/")
 def index():
@@ -78,6 +84,34 @@ def like_message(message_id):
             return jsonify({"error": "not found"}), 404
         row = con.execute("SELECT * FROM messages WHERE id=?", (message_id,)).fetchone()
     return jsonify(dict(row))
+
+# ===== 二択投票 =====
+CHOICES = ["きのこ", "たけのこ"]
+
+@app.get("/vote")
+def vote_page():
+    return render_template("vote.html")
+
+@app.get("/api/votes")
+def get_votes():
+    with connect() as con:
+        rows = con.execute("SELECT choice, COUNT(*) AS n FROM votes GROUP BY choice").fetchall()
+    counts = {c: 0 for c in CHOICES}
+    for r in rows:
+        if r["choice"] in counts:
+            counts[r["choice"]] = r["n"]
+    return jsonify(counts)
+
+@app.post("/api/votes")
+def create_vote():
+    data = request.get_json(silent=True) or {}
+    choice = data.get("choice")
+    if choice not in CHOICES:
+        return jsonify({"error": "invalid choice"}), 400
+    created_at = datetime.now(timezone.utc).isoformat()
+    with connect() as con:
+        con.execute("INSERT INTO votes(choice, created_at) VALUES(?,?)", (choice, created_at))
+    return get_votes(), 201
 
 if __name__ == "__main__":
     init_db()
