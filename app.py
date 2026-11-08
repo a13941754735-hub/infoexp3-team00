@@ -18,8 +18,13 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             message TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            likes INTEGER NOT NULL DEFAULT 0
         )""")
+        # 古いDB（likes列が無い）の場合は、列を追加する
+        cols = [r["name"] for r in con.execute("PRAGMA table_info(messages)")]
+        if "likes" not in cols:
+            con.execute("ALTER TABLE messages ADD COLUMN likes INTEGER NOT NULL DEFAULT 0")
 
 @app.get("/")
 def index():
@@ -63,6 +68,16 @@ def delete_message(message_id):
         if cur.rowcount == 0:
             return jsonify({"error": "not found"}), 404
     return "", 204
+
+# いいね：指定した投稿の likes を1増やす
+@app.post("/api/messages/<int:message_id>/like")
+def like_message(message_id):
+    with connect() as con:
+        cur = con.execute("UPDATE messages SET likes = likes + 1 WHERE id=?", (message_id,))
+        if cur.rowcount == 0:
+            return jsonify({"error": "not found"}), 404
+        row = con.execute("SELECT * FROM messages WHERE id=?", (message_id,)).fetchone()
+    return jsonify(dict(row))
 
 if __name__ == "__main__":
     init_db()
