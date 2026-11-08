@@ -113,6 +113,12 @@ def create_vote():
         con.execute("INSERT INTO votes(choice, created_at) VALUES(?,?)", (choice, created_at))
     return get_votes(), 201
 
+@app.delete("/api/votes")
+def reset_votes():
+    with connect() as con:
+        con.execute("DELETE FROM votes")
+    return get_votes()
+
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=5000, debug=False)
