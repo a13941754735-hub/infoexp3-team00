@@ -10,6 +10,7 @@
   .choices button{flex:1;font-size:1.2rem}
   .bar{display:flex;height:36px;border-radius:8px;overflow:hidden;margin-top:16px;background:#ddd}
   .bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;min-width:0;transition:width .3s}
+  .reset{width:auto;background:#6b7280;font-size:.85rem;padding:4px 12px}
   #a{background:#d97706} #b{background:#2563eb}
 </style>
 </head>
@@ -23,6 +24,7 @@
   </div>
   <div class="bar"><div id="a"></div><div id="b"></div></div>
   <p id="result"></p>
+  <button type="button" id="reset" class="reset">票をリセット</button>
   <p><a href="/">← MiniBoard に戻る</a></p>
 </main>
 <script>
@@ -50,6 +52,12 @@ document.querySelectorAll('[data-choice]').forEach(btn => {
     });
     if (r.ok) show(await r.json());
   });
+});
+
+document.querySelector('#reset').addEventListener('click', async () => {
+  if (!confirm('全部の票を消しますか？元に戻せません。')) return;
+  const r = await fetch('/api/votes', {method: 'DELETE'});
+  if (r.ok) show(await r.json());
 });
 
 load();
